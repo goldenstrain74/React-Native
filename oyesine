@@ -1,0 +1,198 @@
+import React, { useState, createContext, useContext } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  Keyboard, h
+} from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
+
+const ItemContext = createContext();
+const ItemProvider = ({ children }) => {
+  const [items, setItems] = useState([]);
+  const addItem = (name) => {
+    if (name) setItems((prev) => [...prev, { name }]);
+  };
+  const removeItem = (index) => {
+    setItems((prev) => prev.filter((_, i) => i !== index));
+  };
+  return (
+    <ItemContext.Provider value={{ items, addItem, removeItem }}>
+      {children}
+    </ItemContext.Provider>
+  ); 
+};
+
+const CustomHeader = () => (
+  <View style={styles.topHeader}>
+    <Ionicons name="rocket-outline" size={22} color="white" />
+    <Text style={styles.topHeaderText}>Snack Expo Uygulaması</Text>
+  </View>
+);
+
+function WelcomeScreen({ navigation }) {
+  return (
+    <View style={styles.center}>
+      <TouchableOpacity onPress={() => navigation.navigate('Fetch')}>
+        <Ionicons name="happy-outline" size={80} color="tomato" />
+      </TouchableOpacity>
+      <Text style={styles.title}>Hoşgeldin!</Text>
+      <Text style={{ marginTop: 10, color: 'gray' }}>Resme tıkla →</Text>
+    </View>
+  );
+}
+
+function FetchScreen() {
+  const { items, addItem, removeItem } = useContext(ItemContext);
+  const [text, setText] = useState('');
+
+  const handleSubmit = () => {
+    if (text.trim()) {
+      addItem(text.trim());
+      setText('');
+      Keyboard.dismiss();
+    }
+  };
+  return (
+    <View style={styles.container}>
+      <TextInput
+        placeholder="Yeni öğe ekle (Enter ile)"
+        value={text}
+        onChangeText={setText}
+        onSubmitEditing={handleSubmit}
+        returnKeyType="done"
+        style={styles.input}
+      />
+      <FlatList
+        data={items}
+        keyExtractor={(_, i) => i.toString()}
+        renderItem={({ item, index }) => (
+          <View style={styles.item}>
+            <Text style={styles.itemText}>{item.name}</Text>
+            <TouchableOpacity onPress={() => removeItem(index)}>
+              <Ionicons name="trash-outline" size={22} color="crimson" />
+            </TouchableOpacity>
+          </View>
+        )}
+        ListEmptyComponent={<Text>Henüz öğe yok.</Text>}
+      />
+    </View>
+  );
+}
+
+function ListScreen() {
+  const { items } = useContext(ItemContext);
+  return (
+    <View style={styles.container}>
+      <FlatList
+        data={items}
+        keyExtractor={(_, i) => i.toString()}
+        renderItem={({ item }) => (
+          <View style={styles.item}>
+            <Text style={styles.itemText}>{item.name}</Text>
+            <Text style={{ color: 'gray', fontSize: 12 }}>
+              {item.name} hakkında açıklama burada yer alır.
+            </Text>
+          </View>
+        )}
+        ListEmptyComponent={<Text>Liste boş.</Text>}
+      />
+    </View>
+  );
+}
+
+const Tab = createBottomTabNavigator();
+function MainApp() {
+  return (
+    <>
+      <CustomHeader />
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          headerTitleAlign: 'center',
+          tabBarIcon: ({ color, size }) => {
+            let iconName =
+              route.name === 'Welcome'
+                ? 'home'
+                : route.name === 'Fetch'
+                ? 'add-circle'
+                : 'list';
+            return <Ionicons name={iconName} size={size} color={color} />;
+          },
+        })}
+      >
+        <Tab.Screen name="Welcome" component={WelcomeScreen} options={{ title: 'Hoşgeldin' }} />
+        <Tab.Screen name="Fetch" component={FetchScreen} options={{ title: 'Öğe Ekle' }} />
+        <Tab.Screen name="List" component={ListScreen} options={{ title: 'Liste' }} />
+      </Tab.Navigator>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <ItemProvider>
+      <NavigationContainer>
+        <MainApp />
+      </NavigationContainer>
+    </ItemProvider>
+  );
+}
+
+
+const styles = StyleSheet.create({
+  topHeader: {
+  height: 80, // sabit yükseklik
+  backgroundColor: 'black',
+  flexDirection: 'row',
+  alignItems: 'center', // dikeyde ortalama
+  justifyContent: 'center', // yatayda ortalama
+  paddingHorizontal: 16,
+  gap: 10,
+},
+topHeaderText: {
+  color: 'white',
+  fontSize: 18,
+  fontWeight: 'bold',
+  textAlign: 'center', // yazı içi hizalama
+},
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  container: {
+    flex: 1,
+    padding: 20,
+    paddingTop: 20,
+  },
+  title: {
+    fontSize: 22,
+    marginVertical: 16,
+    fontWeight: 'bold',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#aaa',
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 16,
+  },
+  item: {
+    backgroundColor: '#f2f2f2',
+    padding: 12,
+    borderRadius: 6,
+    marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  itemText: {
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+});
